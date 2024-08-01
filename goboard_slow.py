@@ -148,6 +148,10 @@ class GameState:
         self.previous_state = previous
         self.last_move = move
 
+    @property
+    def situation(self):
+        return (self.new_player, self.board)
+
     def apply_move(self, move):
         if move.is_play:
             next_board = copy.deepcopy(self.board)
@@ -173,6 +177,30 @@ class GameState:
         next_board.place_stone(player, move.point)
         new_string = next_board.get_go_string(move.point)
         return new_string.num_liberties == 0
+
+    def does_move_violate_ko(self, player, move):
+        if not move.is_play:
+            return False
+        next_board = copy.deepcopy(self.board)
+        next_board.place_stone(player, move.point)
+        next_situation = (player.other, next_board)
+        past_state = self.previous_state
+        while past_state is not None:
+            if past_state.situation == next_situation:
+                return True
+            past_state = past_state.previous_state
+        return False
+
+    def is_valid_move(self, move):
+        if self.is_over():
+            return False
+        if move.is_pass or move.is_resign:
+            return True
+        return (
+            self.board.get(move.point) is None
+            and not self.is_move_self_capture(self.next_player, move)
+            and not self.does_move_violate_ko(self.next_player, move)
+        )
 
     @classmethod
     def new_game(cls, board_size):
