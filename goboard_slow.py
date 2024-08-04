@@ -150,7 +150,7 @@ class GameState:
 
     @property
     def situation(self):
-        return (self.new_player, self.board)
+        return (self.next_player, self.board)
 
     def apply_move(self, move):
         if move.is_play:
@@ -158,7 +158,7 @@ class GameState:
             next_board.place_stone(self.next_player, move.point)
         else:
             next_board = self.board
-        return GameState(next_board, Player.black, None, None)
+        return GameState(next_board, self.next_player.other, self, move)
 
     def is_over(self):
         if self.last_move is None:
