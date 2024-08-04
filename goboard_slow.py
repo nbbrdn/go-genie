@@ -207,4 +207,4 @@ class GameState:
         if isinstance(board_size, int):
             board_size = (board_size, board_size)
         board = Board(*board_size)
-        return GameState(board, Player.black, None, None)
+        return GameState(board, Player.BLACK, None, None)
