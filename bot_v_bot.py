@@ -1,4 +1,5 @@
 import time
+from typing import Dict, Tuple
 
 from goboard_slow import GameState
 from gotypes import Player
@@ -6,7 +7,7 @@ from agent.naive import RandomBot
 from utils import print_board, print_move
 
 
-def setup_game(board_size):
+def setup_game(board_size: int) -> Tuple[GameState, Dict[Player, RandomBot]]:
     """
     Creates a new game state and sets up the bots.
 
@@ -25,7 +26,7 @@ def setup_game(board_size):
     return game, bots
 
 
-def play_game(game, bots):
+def play_game(game: GameState, bots: Dict[Player, RandomBot]) -> None:
     """
     Plays the game until it is over.
 
@@ -43,7 +44,7 @@ def play_game(game, bots):
         game = game.apply_move(bot_move)
 
 
-def main():
+def main() -> None:
     """
     The main function to start the game.
     """
