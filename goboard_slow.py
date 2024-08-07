@@ -1,27 +1,36 @@
+from __future__ import annotations
+
 import copy
-from gotypes import Player
+from typing import Dict, List, Optional, Set, Tuple, Union
+
+from gotypes import Player, Point
 
 
 class Move:
-    def __init__(self, point=None, is_pass=False, is_resign=False):
+    def __init__(
+        self,
+        point: Optional[Point] = None,
+        is_pass: bool = False,
+        is_resign: bool = False,
+    ):
         assert (point is not None) ^ is_pass ^ is_resign
-        self.point = point
-        self.is_play = self.point is not None
-        self.is_pass = is_pass
-        self.is_resign = is_resign
+        self.point: Optional[Point] = point
+        self.is_play: bool = self.point is not None
+        self.is_pass: bool = is_pass
+        self.is_resign: bool = is_resign
 
     @classmethod
-    def play(cls, point):
+    def play(cls, point: Point) -> Move:
         """Placing a stone on the board"""
         return Move(point=point)
 
     @classmethod
-    def pass_turn(cls):
+    def pass_turn(cls) -> Move:
         """Passing a turn"""
         return Move(is_pass=True)
 
     @classmethod
-    def resign(cls):
+    def resign(cls) -> Move:
         """Exiting the game"""
         return Move(is_resign=True)
 
@@ -29,35 +38,36 @@ class Move:
 class GoString:
     """A chain of connected stones of the same color."""
 
-    def __init__(self, color, stones, liberties):
-        self.color = color
-        self.stones = set(stones)
-        self.liberties = set(liberties)
+    def __init__(self, color: Player, stones: List[Point], liberties: List[Point]):
+        self.color: Player = color
+        self.stones: Set[Point] = set(stones)
+        self.liberties: Set[Point] = set(liberties)
 
-    def remove_liberty(self, point):
+    def remove_liberty(self, point: Point) -> None:
         self.liberties.remove(point)
 
-    def add_liberty(self, point):
+    def add_liberty(self, point: Point) -> None:
         self.liberties.add(point)
 
-    def merged_with(self, go_string):
+    def merged_with(self, go_string: GoString) -> GoString:
         """Returns a new chain containing all stones from both chains."""
         assert go_string.color == self.color
         combined_stones = self.stones | go_string.stones
         return GoString(
             self.color,
-            combined_stones,
-            (self.liberties | go_string.liberties) - combined_stones,
+            list(combined_stones),
+            list((self.liberties | go_string.liberties) - combined_stones),
         )
 
     @property
-    def num_liberties(self):
+    def num_liberties(self) -> int:
         return len(self.liberties)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, GoString):
+            return False
         return (
-            isinstance(other, GoString)
-            and self.color == other.color
+            self.color == other.color
             and self.stones == other.stones
             and self.liberties == other.liberties
         )
@@ -67,12 +77,12 @@ class Board:
     """The board is initialized as an empty grid consisting of a specified number of
     rows and columns."""
 
-    def __init__(self, num_rows, num_cols):
-        self.num_rows = num_rows
-        self.num_cols = num_cols
-        self._grid = {}
+    def __init__(self, num_rows: int, num_cols: int):
+        self.num_rows: int = num_rows
+        self.num_cols: int = num_cols
+        self._grid: Dict[Point, Optional[GoString]] = {}
 
-    def _remove_string(self, string):
+    def _remove_string(self, string: GoString) -> None:
         for point in string.stones:
             for neighbor in point.neighbors():
                 # Removing a chain may result in an increase in the liberties of other chains
@@ -83,10 +93,10 @@ class Board:
                     neighbor_string.add_liberty(point)
             self._grid[point] = None
 
-    def is_on_grid(self, point):
+    def is_on_grid(self, point: Point) -> bool:
         return 1 <= point.row <= self.num_rows and 1 <= point.col <= self.num_cols
 
-    def get(self, point):
+    def get(self, point: Point) -> Optional[Player]:
         """Returns the content of a point on the board: player information if there is
         a stone at that point, otherwise None."""
         string = self._grid.get(point)
@@ -94,20 +104,18 @@ class Board:
             return None
         return string.color
 
-    def get_go_string(self, point):
+    def get_go_string(self, point: Point) -> Optional[GoString]:
         """Returns the entire chain of stones if there is a stone at this point,
         otherwise None."""
-        string = self._grid.get(point)
-        if string is None:
-            return None
-        return string
+        return self._grid.get(point)
 
-    def place_stone(self, player, point):
+    def place_stone(self, player: Player, point: Point) -> None:
         assert self.is_on_grid(point)
         assert self._grid.get(point) is None
-        adjacent_same_color = []
-        adjacent_opposite_color = []
-        liberties = []
+        adjacent_same_color: List[GoString] = []
+        adjacent_opposite_color: List[GoString] = []
+        liberties: List[Point] = []
+
         for neighbor in point.neighbors():
             # The immediate neighbors of a specific point are examined first
             if not self.is_on_grid(neighbor):
@@ -142,17 +150,23 @@ class Board:
 
 
 class GameState:
-    def __init__(self, board, next_player, previous, move):
-        self.board = board
-        self.next_player = next_player
-        self.previous_state = previous
-        self.last_move = move
+    def __init__(
+        self,
+        board: Board,
+        next_player: Player,
+        previous: Optional[GameState],
+        move: Optional[Move],
+    ):
+        self.board: Board = board
+        self.next_player: Player = next_player
+        self.previous_state: Optional[GameState] = previous
+        self.last_move: Optional[Move] = move
 
     @property
-    def situation(self):
+    def situation(self) -> Tuple[Player, Board]:
         return (self.next_player, self.board)
 
-    def apply_move(self, move):
+    def apply_move(self, move: Move) -> GameState:
         if move.is_play:
             next_board = copy.deepcopy(self.board)
             next_board.place_stone(self.next_player, move.point)
@@ -160,25 +174,27 @@ class GameState:
             next_board = self.board
         return GameState(next_board, self.next_player.other, self, move)
 
-    def is_over(self):
+    def is_over(self) -> bool:
         if self.last_move is None:
             return False
         if self.last_move.is_resign:
             return True
-        second_last_move = self.previous_state.last_move
+        second_last_move = (
+            self.previous_state.last_move if self.previous_state.last_move else None
+        )
         if second_last_move is None:
             return False
         return self.last_move.is_pass and second_last_move.is_pass
 
-    def is_move_self_capture(self, player, move):
+    def is_move_self_capture(self, player: Player, move: Move) -> bool:
         if not move.is_play:
             return False
         next_board = copy.deepcopy(self.board)
         next_board.place_stone(player, move.point)
         new_string = next_board.get_go_string(move.point)
-        return new_string.num_liberties == 0
+        return new_string.num_liberties == 0 if new_string else False
 
-    def does_move_violate_ko(self, player, move):
+    def does_move_violate_ko(self, player: Player, move: Move) -> bool:
         if not move.is_play:
             return False
         next_board = copy.deepcopy(self.board)
@@ -191,7 +207,7 @@ class GameState:
             past_state = past_state.previous_state
         return False
 
-    def is_valid_move(self, move):
+    def is_valid_move(self, move: Move) -> bool:
         if self.is_over():
             return False
         if move.is_pass or move.is_resign:
@@ -203,7 +219,7 @@ class GameState:
         )
 
     @classmethod
-    def new_game(cls, board_size):
+    def new_game(cls, board_size: Union[int, Tuple[int, int]]) -> GameState:
         if isinstance(board_size, int):
             board_size = (board_size, board_size)
         board = Board(*board_size)
