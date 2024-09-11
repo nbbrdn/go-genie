@@ -1,12 +1,12 @@
 import random
 from agent.base import Agent
 from agent.helpers import is_point_an_eye
-from goboard_slow import Move
+from goboard_slow import GameState, Move
 from gotypes import Point
 
 
 class RandomBot(Agent):
-    def select_move(self, game_state):
+    def select_move(self, game_state: GameState) -> Move:
         """Choose a random valid move that preserves our own eyes."""
         candidates = []
         for r in range(1, game_state.board.num_rows + 1):

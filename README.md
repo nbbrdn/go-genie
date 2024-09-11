@@ -27,7 +27,7 @@ This project implements a simple Go game engine and Go game AI using deep learni
 
 To run the game simulation, execute the following command:
 ```bash
-python main.py
+python bot_v_bot.py
 ```
 The game will start and display the board state after each move, with a 0.3 second delay between moves.
 
